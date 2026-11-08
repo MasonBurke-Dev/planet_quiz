@@ -18,12 +18,12 @@ Overall score = points earned / best points possible for the categories the
 planet has data for, scaled to 0-100.
 
 Example:
-    from group_scoring import GroupPreference, score_by_groups
+    from sort import GroupPreference, score_by_groups
 
     prefs = [
-        GroupPreference("surface_temp_c", selected=(2, 3), weight=9),
-        GroupPreference("gravity_earth",  selected=(2,),    weight=6),
-        GroupPreference("distance_ly",    selected=(0,),    weight=3),  # closest 20%
+        GroupPreference("temperature", selected=(2, 3), weight=9),
+        GroupPreference("gravity",     selected=(2,),    weight=6),
+        GroupPreference("distance",    selected=(0,),    weight=3),  # closest 20%
     ]
     ranked = score_by_groups(table, prefs, min_coverage=0.7)
 """
@@ -139,13 +139,18 @@ def score_by_groups(df, preferences, name_col="planet", min_coverage=0.0):
 
 
 def default_group_preferences():
-    """A starting set of questions with reasonable defaults the UI can show."""
+    """A starting set of preferences for the question columns used by main.py."""
     return [
-        GroupPreference("surface_temp_c", selected=(2,), weight=8, label="Temperature"),
-        GroupPreference("gravity_earth", selected=(2,), weight=6, label="Gravity"),
-        GroupPreference("density_g_cm3", selected=(3,), weight=3, label="Density"),
-        GroupPreference("distance_ly", selected=(0,), weight=3, label="Closer to Earth"),
-        GroupPreference("star_lifespan_gyr", selected=(4,), weight=2, label="Longer-lived star"),
+        GroupPreference("temperature", selected=(2,), weight=8, label="Temperature"),
+        GroupPreference("size", selected=(2,), weight=6, label="Size"),
+        GroupPreference("mass", selected=(2,), weight=6, label="Mass"),
+        GroupPreference("gravity", selected=(2,), weight=6, label="Gravity"),
+        GroupPreference("brightness", selected=(2,), weight=6, label="Brightness"),
+        GroupPreference("distance", selected=(0,), weight=6, label="Distance"),
+        GroupPreference("star_age", selected=(2,), weight=6, label="Star age"),
+        GroupPreference("metallicity", selected=(2,), weight=6, label="Metallicity"),
+        GroupPreference("neighbors", selected=(2,), weight=6, label="Neighbors"),
+        GroupPreference("solidity", selected=(4,), weight=6, label="Solidity"),
     ]
 
 
@@ -153,16 +158,16 @@ if __name__ == "__main__":
     demo = pd.DataFrame(
         {
             "planet": [f"P{i}" for i in range(10)],
-            "surface_temp_c": [-80, -40, -10, 0, 5, 15, 22, 40, 90, np.nan],
-            "distance_ly": [300, 120, 80, 50, 40, 25, 12, 8, 5, 2],
+            "temperature": [-80, -40, -10, 0, 5, 15, 22, 40, 90, np.nan],
+            "distance": [300, 120, 80, 50, 40, 25, 12, 8, 5, 2],
         }
     )
-    pref = GroupPreference("surface_temp_c", selected=(4,), weight=5)
+    pref = GroupPreference("temperature", selected=(4,), weight=5)
     print("points per group:", points_by_group(pref).round(3))
     print("slider 60-100% ->", select_range(60, 100))
 
     prefs = [
-        GroupPreference("surface_temp_c", selected=(3, 4), weight=9),
-        GroupPreference("distance_ly", selected=(4,), weight=3),
+        GroupPreference("temperature", selected=(3, 4), weight=9),
+        GroupPreference("distance", selected=(4,), weight=3),
     ]
     print(score_by_groups(demo, prefs).round(2))

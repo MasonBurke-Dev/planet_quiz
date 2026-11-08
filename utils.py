@@ -1,9 +1,9 @@
 """Utilities for splitting planet data into percentile groups.
 
 Example:
-    from percentile_utils import split_into_percentiles
+    from utils import split_into_percentiles
 
-    groups = split_into_percentiles(table, "surface_temp_c")
+    groups = split_into_percentiles(table, "temperature")
     groups[0]   # coldest 20% of planets (planet names)
     groups[4]   # hottest 20% of planets
 """
@@ -109,14 +109,16 @@ def percentile_labels(values, n_groups=5):
 
 # Categories (columns) used when you don't pass your own list
 DEFAULT_CATEGORIES = [
-    "surface_temp_c",
-    "gravity_earth",
-    "density_g_cm3",
-    "surface_area_km2",
-    "volume_km3",
-    "distance_ly",
-    "year_vs_earth",
-    "star_lifespan_gyr",
+    "temperature",
+    "size",
+    "mass",
+    "gravity",
+    "brightness",
+    "distance",
+    "star_age",
+    "metallicity",
+    "neighbors",
+    "solidity",
 ]
 
 
@@ -171,19 +173,19 @@ if __name__ == "__main__":
     demo = pd.DataFrame(
         {
             "planet": [f"Planet {i}" for i in range(1, 13)],
-            "surface_temp_c": [-80, -40, -10, 0, 5, 15, 22, 40, 90, 150, 300, None],
+            "temperature": [-80, -40, -10, 0, 5, 15, 22, 40, 90, 150, 300, None],
             "solid_label": ["Solid (rocky)"] * 8 + ["Gaseous / volatile-rich"] * 4,
         }
     )
 
-    groups = split_into_percentiles(demo, "surface_temp_c")
+    groups = split_into_percentiles(demo, "temperature")
     for i, g in enumerate(groups):
         print(f"Group {i + 1} ({i * 20}-{(i + 1) * 20}%): {g}")
 
-    print("Edges:", percentile_edges(demo, "surface_temp_c"))
-    print(split_by_type_then_percentile(demo, "solid_label", "surface_temp_c", n_groups=2))
+    print("Edges:", percentile_edges(demo, "temperature"))
+    print(split_by_type_then_percentile(demo, "solid_label", "temperature", n_groups=2))
 
     # Every category at once
-    demo["gravity_earth"] = [0.3, 0.5, 0.8, 1.0, 1.1, 1.4, 1.8, 2.5, 10, 15, 25, 30]
-    everything = split_all_categories(demo, ["surface_temp_c", "gravity_earth"], n_groups=2)
+    demo["gravity"] = [0.3, 0.5, 0.8, 1.0, 1.1, 1.4, 1.8, 2.5, 10, 15, 25, 30]
+    everything = split_all_categories(demo, ["temperature", "gravity"], n_groups=2)
     print(everything)
