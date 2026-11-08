@@ -11,18 +11,18 @@ QUESTION_ENDPOINTS = {
     "size": ("Tiny", "Huge"),
     "mass": ("Very light", "Very heavy"),
     "gravity": ("Floaty", "Crushing"),
-    "brightness": ("Dim", "Blinding"),
+    "brightness": ("Barely visible", "Blinding"),
     "distance": ("Nearby", "Very far"),
     "star_age": ("Newborn", "Ancient"),
     "metallicity": ("Metal-poor", "Metal-rich"),
     "neighbors": ("None", "Crowded"),
-    "solidity": ("Gassy", "Solid rock"),
+    "solidity": ("Mostly gas", "Solid rock"),
 }
 
 QUESTIONS = {
-    "temperature": "How hot do you like it?",
-    "size": "How big a planet do you want?",
-    "mass": "How heavy a planet?",
+    "temperature": "What is your ideal temperature?",
+    "size": "How big of a planet do you want?",
+    "mass": "How heavy would your planet be?",
     "gravity": "How strong should gravity be?",
     "brightness": "How bright should the sunlight be?",
     "distance": "How far from Earth?",
@@ -47,7 +47,7 @@ PAGE = """<!doctype html>
         radial-gradient(ellipse at 88% 73%, #26477c33, transparent 30%),
         radial-gradient(ellipse at 72% 15%, #713d7430, transparent 22%); }
     .starfield i { --star-color: #aebeff; position: absolute; width: 4px; height: 4px;
-      background: var(--star-color);
+      background: transparent;
       box-shadow: 4px 0 var(--star-color), 0 4px var(--star-color),
         4px 4px var(--star-color), 8px 4px var(--star-color),
         4px 8px var(--star-color); opacity: .7; image-rendering: pixelated;
@@ -64,7 +64,7 @@ PAGE = """<!doctype html>
     .starfield i:nth-child(8n + 5) { --star-color: #ffb8e3; }
     .starfield i:nth-child(8n + 6) { --star-color: #9de8e8; }
     .starfield i:nth-child(8n + 7) { --star-color: #fff3dc; }
-    .starfield .cross-star { width: 3px; height: 3px;
+    .starfield .cross-star { width: 3px; height: 3px; background: var(--star-color);
       box-shadow: 0 -7px var(--star-color), 0 -3px var(--star-color),
       0 3px var(--star-color), 0 7px var(--star-color),
       -7px 0 var(--star-color), -3px 0 var(--star-color),
@@ -76,7 +76,7 @@ PAGE = """<!doctype html>
     .starfield .cross-star:nth-child(8n + 5) { --star-color: #ffb8e3; }
     .starfield .cross-star:nth-child(8n + 6) { --star-color: #9de8e8; }
     .starfield .cross-star:nth-child(8n + 7) { --star-color: #fff3dc; }
-    .starfield .tiny-star { width: 2px; height: 2px; box-shadow: none; }
+    .starfield .tiny-star { width: 2px; height: 2px; background: var(--star-color); box-shadow: none; }
     .starfield i:nth-of-type(5n + 1) { animation-name: star-glow; }
     .starfield i:nth-of-type(5n + 2) { animation-name: star-flicker; }
     .starfield i:nth-of-type(5n + 4) { animation-name: star-glow; }
@@ -131,11 +131,6 @@ PAGE = """<!doctype html>
     .percentile-slider:focus-visible { outline: 2px solid #ffe39a; outline-offset: 4px; }
     .scale-endpoints { display: flex; justify-content: space-between; gap: 12px;
       margin: 9px 2px 0; color: #c8d1f3; font-size: .88rem; font-weight: 650; }
-    .percentile-values { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 3px; margin: 3px -8px 0; text-align: center; }
-    .percentile-values span { overflow-wrap: anywhere; color: #9eabc9;
-      font-size: clamp(.62rem, 1.8vw, .76rem); font-variant-numeric: tabular-nums; }
-    .percentile-values span.active { color: #e2e8ff; font-weight: 700; }
     button { border: 0; border-radius: 10px; padding: 14px 22px; background: #8ca4ff;
       color: #10172a; font-weight: 700; font-size: 1rem; cursor: pointer; }
     .message { margin: 18px 0; padding: 14px; border-radius: 10px; background: #38252d; }
@@ -385,7 +380,7 @@ PAGE = """<!doctype html>
         <div class="scale-endpoints" aria-hidden="true">
           <span>{{ endpoints[column][0] }}</span><span>{{ endpoints[column][1] }}</span>
         </div>
-      </div> 
+      </div>
     </fieldset>
     {% endfor %}
     <button type="submit">Find my planet</button>
@@ -436,7 +431,7 @@ PAGE = """<!doctype html>
       {% for item in details %}
       <li><strong>{{ item.label }}</strong>: {{ item.text }}</li>
       {% endfor %}
-    </ul> 
+    </ul>
   </section>
   {% endif %}
 </div>
@@ -543,9 +538,6 @@ PAGE = """<!doctype html>
 </html>"""
 
 
-
-
-
 def _render(message=None, answers=None, result=None, details=None, galactic_position=None):
     return render_template_string(
         PAGE,
@@ -584,3 +576,4 @@ def quiz():
         details=calculator.get_planet_values(winner, table),
         galactic_position=calculator.get_galactic_position(winner, table),
     )
+
