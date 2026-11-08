@@ -89,6 +89,24 @@ def split_by_type_then_percentile(
     return results
 
 
+def percentile_labels(values, n_groups=5):
+    """Give every value a group number from 0 (lowest percentile group) to
+    n_groups - 1 (highest). Missing values stay NaN. Returns a Series with the
+    same index as `values`, so it can be added to a table as a column.
+
+    This is the fast, one-column alternative to split_into_percentiles.
+    """
+    s = pd.Series(values, dtype=float)
+    valid = s.notna()
+    count = int(valid.sum())
+    if count < n_groups:
+        raise ValueError(f"Only {count} values available, not enough for {n_groups} groups.")
+    labels = pd.Series(np.nan, index=s.index)
+    ranks = s[valid].rank(method="first")            # 1..count, ties broken by order
+    labels[valid] = ((ranks - 1) * n_groups // count)  # evenly spread 0..n_groups-1
+    return labels
+
+
 # Categories (columns) used when you don't pass your own list
 DEFAULT_CATEGORIES = [
     "surface_temp_c",

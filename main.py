@@ -3,6 +3,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from sort import GroupPreference, score_by_groups          # scoring
+from utils import percentile_edges, percentile_labels      # percentile groups
+
 # temp = float(input("Enter the temperature of the planet in Celsius: "))
 
 
@@ -14,15 +17,17 @@ def _logit(p):
 
 
 
-planets = NasaExoplanetArchive.query_criteria(
-    table="pscomppars",
-    select="pl_name, sy_dist, sy_pnum, st_age, st_lum, pl_eqt, pl_rade, pl_bmasse, pl_insol, pl_orbsmax,pl_dens, st_teff, st_rad",
-)
+cols = ["pl_name", "hostname", "sy_dist", "sy_pnum", "sy_snum", "cb_flag",
+        "st_age", "st_lum", "st_met", "st_teff", "st_rad", "st_mass",
+        "pl_eqt", "pl_rade", "pl_bmasse", "pl_dens", "pl_insol",
+        "pl_orbsmax", "pl_orbper"]
 
+planets = NasaExoplanetArchive.query_criteria(table="pscomppars", select=",".join(cols))
+df = planets.to_pandas()
 def _sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-df = planets.to_pandas()
+
 
 def solid(df):
     r = df["pl_rade"]
@@ -122,3 +127,108 @@ print(names_by_gravity[-5:])
 
 
 
+# =====================================================================
+# QUIZ (new): 10 questions, answered 1-5, one planet picked at the end
+# =====================================================================
+
+POINTS = 10            # points a planet earns per question for being in the picked group
+TOP_N = 20             # the winner is drawn at random from this many top scorers
+MIN_COVERAGE = 0.7     # ignore planets with data for fewer than 70% of the questions
+SEED = None            # set to a number (e.g. 42) for repeatable results in a demo
+
+# These three give "fixed points for the picked group only".
+# To use sort.py's extra behavior (half points for the next group over, smaller
+# weight for middle groups) set FALLOFF = 0.5, REACH = 2, MIDDLE_WEIGHT = 0.5.
+FALLOFF = 0.0
+REACH = 0
+MIDDLE_WEIGHT = 1.0
+
+# table column -> question text (1 = lowest values, 5 = highest values)
+QUESTIONS = {
+    "temperature": "How hot do you like it? (1 = frozen, 5 = scorching)",
+    "size":        "How big a planet do you want? (1 = tiny, 5 = huge)",
+    "mass":        "How heavy a planet? (1 = very light, 5 = very heavy)",
+    "gravity":     "How strong should gravity be? (1 = floaty, 5 = crushing)",
+    "brightness":  "How bright should the sunlight be? (1 = dim, 5 = blinding)",
+    "distance":    "How far from Earth? (1 = right next door, 5 = very far)",
+    "star_age":    "How old should its star be? (1 = newborn, 5 = ancient)",
+    "metallicity": "How metal-rich a star system? (1 = metal-poor, 5 = metal-rich)",
+    "neighbors":   "How many neighboring planets? (1 = none, 5 = a crowded system)",
+    "solidity":    "What should the planet be made of? (1 = gassy, 5 = solid rock)",
+}
+
+# One table with a column per question; this is what sort.py and utils.py read.
+# It reuses the sorted Series above (g, f, d, a, m, n), matched back to df by index.
+table = pd.DataFrame({
+    "planet":      df["pl_name"],
+    "temperature": df["surface_temp_c"],
+    "size":        df["pl_rade"],
+    "mass":        df["pl_bmasse"],
+    "gravity":     g,
+    "brightness":  f,
+    "distance":    d,
+    "star_age":    a,
+    "metallicity": m,
+    "neighbors":   n,
+    "solidity":    df["solid_score"],
+}, index=df.index).replace([np.inf, -np.inf], np.nan)
+
+group_labels = {column: percentile_labels(table[column]) for column in QUESTIONS}
+
+
+def ask():
+    """Ask every question and return {column: pick from 1 to 5}."""
+    answers = {}
+    for column, text in QUESTIONS.items():
+        while True:
+            reply = input(text + " ").strip()
+            if reply in {"1", "2", "3", "4", "5"}:
+                answers[column] = int(reply)
+                break
+            print("Please enter a number from 1 to 5.")
+    return answers
+
+
+def pick_planet(answers, rng):
+    """Score every planet, then draw one winner at random from the top TOP_N."""
+    prefs = [
+        GroupPreference(column, selected=(pick - 1,), weight=POINTS,
+                        falloff=FALLOFF, reach=REACH, middle_weight=MIDDLE_WEIGHT, label=column)
+        for column, pick in answers.items()
+    ]
+    scored = score_by_groups(table, prefs, name_col="planet", min_coverage=MIN_COVERAGE)
+    if scored.empty:
+        return None
+
+    # Shuffle first so ties at the cutoff are broken randomly, then keep the top scorers
+    pool = (scored.sample(frac=1, random_state=rng)
+                  .sort_values("score", ascending=False, kind="stable")
+                  .head(TOP_N))
+    return pool.sample(1, random_state=rng).iloc[0]
+
+
+def show_result(answers, winner):
+    idx = winner.name
+    print(f"\nYour ideal planet is {winner['planet']}!")
+    print(f"Match score: {winner['score']:.0f}/100 (data available for {winner['coverage'] * 100:.0f}% of the questions)\n")
+
+    for column, pick in answers.items():
+        edges = percentile_edges(table, column)
+        low, high = edges[pick - 1], edges[pick]
+        group = group_labels[column].get(idx)
+        value = table.loc[idx, column]
+        if pd.isna(group):
+            print(f"  {column:12} you wanted {low:.3g} to {high:.3g}  |  no data for this planet")
+        else:
+            hit = "match" if int(group) == pick - 1 else "miss "
+            print(f"  {column:12} you wanted {low:.3g} to {high:.3g}  |  planet: {value:.3g}  [{hit}]")
+
+
+if __name__ == "__main__":
+    print("\nAnswer each question with a number from 1 to 5.\n")
+    answers = ask()
+    winner = pick_planet(answers, np.random.default_rng(SEED))
+    if winner is None:
+        print("No planet had enough data to match. Try lowering MIN_COVERAGE.")
+    else:
+        show_result(answers, winner)
